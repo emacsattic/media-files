@@ -88,7 +88,7 @@
     (setq media-files-mode-map map)))
 
 (defvar media-files-checkbox-map nil)
-(unless media-files-chekbox-map
+(unless media-files-checkbox-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "SPC") 'media-file-toggle-checkbox)
     (define-key map [(mouse-1)] 'media-file-mouse-toggle-checkbox)
