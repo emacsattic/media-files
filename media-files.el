@@ -1,14 +1,13 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; TODO
+;; * click to toggle checkbox or open file
+;; * navigate with n/p/f/b
+;; * 'w' to toggle whether to display watched files
 ;; * save/load database file
 ;; * when open, watch database for changes and automatically re-load;
 ;;   otherwise, keep database closed when not in use.
-;; * toggle check-box when <return> or mouse click
-;; * navigate with n/p/f/b
-;; * 'w' to toggle whether to display watched files
 ;; * detect duplicates, only filename (not directory) determines uniqueness;
 ;;   handle case where file is moved.
-;; * click on file to watch it
 ;; * metadata - recognize show and episode names, figure out where to refile
 
 (require 'cl)
@@ -41,10 +40,19 @@
 ;; functions
 
 (defvar media-files-mode-map nil)
-
-(defun media-files-setup-map ()
+(unless media-files-mode-map
   (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "g") 'media-files-update)
+    (define-key map (kbd "q") 'bury-buffer)
+    (define-key map (kbd "n") 'next-line)
+    (define-key map (kbd "p") 'previous-line)
     (setq media-files-mode-map map)))
+
+(defvar media-files-checkbox-map nil)
+(setq media-files-checkbox-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map [(mouse-1)] 'media-file-toggle-checkbox)
+    map))
 
 (defun media-files-mode ()
   (kill-all-local-variables)
@@ -52,11 +60,12 @@
   (use-local-map media-files-mode-map)
   (setq major-mode 'media-files-mode
         mode-name "Media-Files")
-  ;; (set (make-local-variable 'revert-buffer-function) #'media-files-update)
-  ;; (run-mode-hooks 'media-files-mode-hook)
+  (set (make-local-variable 'revert-buffer-function) #'media-files-update)
+  (run-mode-hooks 'media-files-mode-hook)
   )
 
-(defun media-files-update (&optional silent)
+(defun media-files-update (arg &optional silent)
+  ;; the dummy arg is needed so we're compatible with revert-buffer-function
   (interactive "P")
   (media-files-assert-mode)
   (let ((line (line-number-at-pos (point))))
@@ -64,19 +73,45 @@
       (message "Updating media list..."))
     (toggle-read-only 0)
     (erase-buffer)
-    (dolist (x *media-files*)
-      (dolist (user media-users)
-        (let ((check-mark (if (memq user (media-file-users-watched x))
-                              "X" " ")))
-          (insert (format "%s [%s]     " user check-mark))))
-      (insert (file-name-nondirectory (media-file-path x)))
-      (newline))
+    (mapc 'media-file-insert-line *media-files*)
     (toggle-read-only 1)
     (goto-char (point-min))
     (forward-line (1- line))
     (unless silent
       (message "Updating media list...done"))
     ))
+
+(defun media-file-insert-line (media-file &optional no-newline)
+  (dolist (user media-users)
+    (let ((beg (point))
+          (check-mark (if (memq user (media-file-users-watched media-file))
+                          "X" " ")))
+      (insert (format "%s [%s]" user check-mark))
+      (add-text-properties beg (point)
+          (list 'mouse-face 'hilight
+                'keymap media-files-checkbox-map
+                'media-file media-file
+                'user user))
+      (insert "     ")))
+  (insert (file-name-nondirectory (media-file-path media-file)))
+  (unless no-newline (newline)))
+
+(defun media-file-toggle-checkbox (event)
+  (interactive "e")
+  (save-excursion
+    (mouse-set-point event)
+    (let ((media-file (get-text-property (point) 'media-file))
+          (user (get-text-property (point) 'user))
+          beg)
+      ;; note that because *media-files* is a defstruct, this line actually
+      ;; modifies the global variable, not some copy of it
+      (media-file-toggle-user-watched media-file user)
+      (beginning-of-line)
+      (setq beg (point))
+      (end-of-line)
+      (delete-region beg (point))
+      (media-file-insert-line media-file 'no-newline)
+      )))
 
 (defun display-media-files ()
   (interactive)
@@ -85,7 +120,10 @@
       (media-files-mode))
     (media-files-update t))
 
-  (display-buffer media-file-buffer))
+  ;; TODO customize this behavior, support save and restore window config
+  ;;(display-buffer media-file-buffer)
+  (switch-to-buffer-other-window media-file-buffer)
+  )
 
 (defun initialize-media-files ()
   (setq *media-files* (scan-media-files)))
@@ -109,6 +147,12 @@
 
 (defun media-user-watched-p (media-file user)
   (memq user (media-file-users-watched media-file)))
+
+(defun media-file-toggle-user-watched (media-file user)
+  (if (media-user-watched-p media-file user)
+      (setf (media-file-users-watched media-file)
+            (delete user (media-file-users-watched media-file)))
+    (push user (media-file-users-watched media-file))))
 
 (defun media-file-users-not-watched (media-file &optional users)
   "Return the subset of USERS who have not watched MEDIA.
