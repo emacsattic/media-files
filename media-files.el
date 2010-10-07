@@ -54,7 +54,8 @@
 (defvar media-files-checkbox-map nil)
 (setq media-files-checkbox-map
   (let ((map (make-sparse-keymap)))
-    (define-key map [(mouse-1)] 'media-file-toggle-checkbox)
+    (define-key map (kbd "SPC") 'media-file-toggle-checkbox)
+    (define-key map [(mouse-1)] 'media-file-mouse-toggle-checkbox)
     map))
 
 (defun media-files-mode ()
@@ -108,22 +109,30 @@
             (list 'help-echo "Left click: open file")))
   (unless no-newline (newline)))
 
-(defun media-file-toggle-checkbox (event)
+(defun media-file-mouse-toggle-checkbox (event)
   (interactive "e")
   (save-excursion
     (mouse-set-point event)
-    (let ((media-file (get-text-property (point) 'media-file))
-          (user (get-text-property (point) 'user))
-          beg)
-      ;; note that because *media-files* is a defstruct, this line actually
-      ;; modifies the global variable, not some copy of it
-      (media-file-toggle-user-watched media-file user)
-      (beginning-of-line)
-      (setq beg (point))
-      (end-of-line)
-      (delete-region beg (point))
-      (media-file-insert-line media-file 'no-newline)
-      )))
+    (media-file-toggle-checkbox)))
+
+(defun media-file-toggle-checkbox ()
+  (interactive)
+  (media-files-assert-mode)
+  (let ((media-file (get-text-property (point) 'media-file))
+        (user (get-text-property (point) 'user))
+        saved-point
+        beg)
+    (setq saved-point (point))
+    ;; note that because *media-files* is a defstruct, this line actually
+    ;; modifies the global variable, not some copy of it
+    (media-file-toggle-user-watched media-file user)
+    (beginning-of-line)
+    (setq beg (point))
+    (end-of-line)
+    (delete-region beg (point))
+    (media-file-insert-line media-file 'no-newline)
+    (goto-char saved-point)
+    ))
 
 (defun display-media-files ()
   (interactive)
