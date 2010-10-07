@@ -85,18 +85,27 @@
     ))
 
 (defun media-file-insert-line (media-file &optional no-newline)
-  (dolist (user media-users)
-    (let ((beg (point))
-          (check-mark (if (memq user (media-file-users-watched media-file))
-                          "X" " ")))
-      (insert (format "%s [%s]" user check-mark))
-      (add-text-properties beg (point)
-          (list 'mouse-face 'hilight
-                'keymap media-files-checkbox-map
-                'media-file media-file
-                'user user))
-      (insert "     ")))
-  (insert (file-name-nondirectory (media-file-path media-file)))
+  (media-files-assert-mode)
+  (beginning-of-line)
+  (let ((beg-line (point))
+        beg-file-name)
+    (dolist (user media-users)
+      (let ((beg (point))
+            (check-mark (if (memq user (media-file-users-watched media-file))
+                            "X" " ")))
+        (insert (format "%s [%s]" user check-mark))
+        (add-text-properties beg (point)
+            (list 'mouse-face 'hilight
+                  'keymap media-files-checkbox-map
+                  'help-echo (format "Left click: toggle user %s" user)
+                  'user user))
+        (insert "     ")))
+    (setq beg-file-name (point))
+    (insert (file-name-nondirectory (media-file-path media-file)))
+    (add-text-properties beg-line (point)
+            (list 'media-file media-file))
+    (add-text-properties beg-file-name (point)
+            (list 'help-echo "Left click: open file")))
   (unless no-newline (newline)))
 
 (defun media-file-toggle-checkbox (event)
