@@ -59,7 +59,7 @@
 
 (defun media-files-mode ()
   (kill-all-local-variables)
-  (media-files-setup-map)
+  (use-local-map media-files-mode-map)
   (use-local-map media-files-mode-map)
   (setq major-mode 'media-files-mode
         mode-name "Media-Files")
