@@ -1,11 +1,36 @@
+;; media-files.el
+;;
+;; Copyright (C) 2010 Philip Weaver
+;; Author: Philip Weaver <philip.weaver@gmail.com>
+;;
+;; This file is not part of GNU Emacs
+
+;;; License
+;;
+;; This program is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License version 2 as
+;; published by the Free Software Foundation.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with GNU Emacs; see the file COPYING.  If not, write to
+;; the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+;;
+;;; Commentary
+;;
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; TODO
+;; * save/load database file
 ;; * bind 1, 2, 3, etc. to toggle users on line
 ;; * highlight background when mouse hover
 ;; * toggle whether to display watched files
 ;; * toggle all checkboxes on line
 ;; * custom display format (like ibuffer)
-;; * save/load database file
 ;; * when open, watch database for changes and automatically re-load;
 ;;   otherwise, keep database closed when not in use.
 ;; * detect duplicates, only filename (not directory) determines uniqueness;
@@ -15,7 +40,8 @@
 (require 'cl)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; variables
+;; local variables
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defvar media-dir-prefix
   (cond ((memq system-type '(windows-nt cygwin)) "z:/")
@@ -47,7 +73,8 @@
 (defconst media-file-buffer " *media-files*")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; functions
+;; functions related to the media file display list
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defvar media-files-mode-map nil)
 (unless media-files-mode-map
@@ -197,6 +224,8 @@
   )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; functions related to the media-file data structure
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun initialize-media-files ()
   (setq *media-files* (scan-media-files)))
@@ -246,18 +275,6 @@ defaults to `media-users'."
 
 (defsubst media-files-assert-mode ()
   (assert (derived-mode-p 'media-files-mode)))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; some testing and debugging
-
-(ignore
- '(
-   (setq foo (make-media-file :path "/" :users-watched '(philip)))
-   (initialize-media-files)
-
-   (length (media-files-get-unwatched))
-   (media-files-get-unwatched *media-files*)
- ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
