@@ -243,7 +243,7 @@
       (setq contents
             (directory-files-and-attributes full-dir t "^[^.]" 'nosort))
       (dolist (x contents)
-        (let ((file (dired-make-relative (car x) media-dir-prefix))
+        (let ((file (file-relative-name (car x) media-dir-prefix))
               (is-dir (car (cdr x))))
           (cond (is-dir (push file subdirs))
                 ((string-match media-file-regexp file)
