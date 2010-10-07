@@ -75,6 +75,9 @@
 ;; functions related to the media file display list
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defsubst media-files-assert-mode ()
+  (assert (derived-mode-p 'media-files-mode)))
+
 (defvar media-files-mode-map nil)
 (unless media-files-mode-map
   (let ((map (make-sparse-keymap)))
@@ -277,9 +280,6 @@ defaults to `media-users'."
   (unless media-files (setq media-files *media-files*))
   ;; remove all media files that have been watched by everyone in USERS
   (remove-if (lambda (x) (null (media-file-users-not-watched x users))) media-files))
-
-(defsubst media-files-assert-mode ()
-  (assert (derived-mode-p 'media-files-mode)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
