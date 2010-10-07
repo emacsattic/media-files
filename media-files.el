@@ -146,6 +146,7 @@
         (if x (goto-char x) (goto-char (point-min)))))))
 
 (defun media-file-insert-line (media-file &optional no-newline)
+  (assert (not buffer-read-only))
   (media-files-assert-mode)
   (forward-line 0)
   (let ((beg-line (point))
@@ -192,8 +193,10 @@
     (forward-line 0)
     (setq beg (point))
     (end-of-line)
+    (toggle-read-only 0)
     (delete-region beg (point))
     (media-file-insert-line media-file 'no-newline)
+    (toggle-read-only 1)
     (goto-char saved-point)
     ))
 
