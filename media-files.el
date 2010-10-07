@@ -78,6 +78,7 @@
 (defvar media-files-mode-map nil)
 (unless media-files-mode-map
   (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "TAB") 'media-file-next-item)
     (define-key map (kbd "f") 'media-file-next-item)
     (define-key map (kbd "b") 'media-file-previous-item)
     (define-key map (kbd "g") 'media-files-update)
