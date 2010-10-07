@@ -1,8 +1,11 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; TODO
-;; * click to toggle checkbox or open file
-;; * navigate with n/p/f/b
-;; * 'w' to toggle whether to display watched files
+;; * open file on line
+;; * bind 1, 2, 3, etc. to toggle users on line
+;; * highlight background when mouse hover
+;; * navigate to previous/next checkbox/filename with f/b
+;; * toggle whether to display watched files
+;; * toggle all checkboxes on line
 ;; * save/load database file
 ;; * when open, watch database for changes and automatically re-load;
 ;;   otherwise, keep database closed when not in use.
@@ -155,14 +158,14 @@
     (push user (media-file-users-watched media-file))))
 
 (defun media-file-users-not-watched (media-file &optional users)
-  "Return the subset of USERS who have not watched MEDIA.
+  "Return the subset of USERS who have not watched MEDIA-FILE.
 If nil, USERS defaults to `media-users'."
   (unless users (setq users media-users))
   (set-difference users (media-file-users-watched media-file)))
 
 (defun media-files-get-unwatched (&optional media-files users)
   "Return all MEDIA-FILES that are not watched by at least one of
-USERS.  If nil, MEDIA-FILES defaults to `*media-files' and USERS
+USERS.  If nil, MEDIA-FILES defaults to `*media-files*' and USERS
 defaults to `media-users'."
   (unless media-files (setq media-files *media-files*))
   ;; remove all media files that have been watched by everyone in USERS
