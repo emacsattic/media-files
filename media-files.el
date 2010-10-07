@@ -46,6 +46,8 @@
 (defvar media-files-mode-map nil)
 (unless media-files-mode-map
   (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "f") 'media-file-next-item)
+    (define-key map (kbd "b") 'media-file-previous-item)
     (define-key map (kbd "g") 'media-files-update)
     (define-key map (kbd "q") 'bury-buffer)
     (define-key map (kbd "n") 'next-line)
@@ -86,6 +88,21 @@
       (message "Updating media list...done"))
     ))
 
+;; hackish - relies on the fact that the 'user property changes at each item
+(defun media-file-next-item (arg)
+  (interactive "p")
+  (if (< arg 0)
+      (media-file-previous-item (- 0 arg))
+    (dotimes (n arg)
+      (goto-char (next-single-property-change (point) 'user)))))
+
+(defun media-file-previous-item (arg)
+  (interactive "p")
+  (if (< arg 0)
+      (media-file-next-item (- 0 arg))
+    (dotimes (n arg)
+      (goto-char (previous-single-property-change (point) 'user)))))
+
 (defun media-file-insert-line (media-file &optional no-newline)
   (media-files-assert-mode)
   (beginning-of-line)
@@ -99,9 +116,9 @@
         (add-text-properties beg (point)
             (list 'mouse-face 'hilight
                   'keymap media-files-checkbox-map
-                  'help-echo (format "Left click: toggle user %s" user)
-                  'user user))
-        (insert "     ")))
+                  'help-echo (format "Left click: toggle user %s" user)))
+        (insert "     ")
+        (put-text-property beg (point) 'user user)))
     (setq beg-file-name (point))
     (insert (file-name-nondirectory (media-file-path media-file)))
     (add-text-properties beg-line (point)
