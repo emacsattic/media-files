@@ -6,6 +6,7 @@
 ;; * navigate to previous/next checkbox/filename with f/b
 ;; * toggle whether to display watched files
 ;; * toggle all checkboxes on line
+;; * custom display format (like ibuffer)
 ;; * save/load database file
 ;; * when open, watch database for changes and automatically re-load;
 ;;   otherwise, keep database closed when not in use.
