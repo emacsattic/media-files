@@ -27,7 +27,6 @@
 ;; TODO
 ;; * save/load database file
 ;; * bind 1, 2, 3, etc. to toggle users on line
-;; * highlight background when mouse hover
 ;; * toggle whether to display watched files
 ;; * toggle all checkboxes on line
 ;; * custom display format (like ibuffer)
@@ -157,7 +156,7 @@
                             "X" " ")))
         (insert (format "%s [%s]" user check-mark))
         (add-text-properties beg (point)
-            (list 'mouse-face 'hilight
+            (list 'mouse-face 'highlight
                   'keymap media-files-checkbox-map
                   'help-echo (format "Left click: toggle user %s" user)))
         (insert "     ")
@@ -167,9 +166,10 @@
     (add-text-properties beg-line (point)
             (list 'media-file media-file))
     (add-text-properties beg-file-name (point)
-            (list 'mouse-faece 'hilight
+            (list 'mouse-face 'highlight
                   'keymap media-files-filename-map
                   'help-echo "Middle click: open file")))
+  (insert " ") ;; keeps the mouse highlight from spilling over to next line
   (unless no-newline (newline)))
 
 (defun media-file-mouse-toggle-checkbox (event)
