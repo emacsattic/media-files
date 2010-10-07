@@ -1,9 +1,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; TODO
-;; * open file on line
 ;; * bind 1, 2, 3, etc. to toggle users on line
 ;; * highlight background when mouse hover
-;; * navigate to previous/next checkbox/filename with f/b
 ;; * toggle whether to display watched files
 ;; * toggle all checkboxes on line
 ;; * custom display format (like ibuffer)
@@ -20,7 +18,7 @@
 ;; variables
 
 (defvar media-dir-prefix
-  (cond ((eq system-type 'windows-nt) "z:/")
+  (cond ((memq system-type '(windows-nt cygwin)) "z:/")
         ((eq system-type 'darwin) "/Volumes/share")
 
         ;; assume we're on the file server, where everything is local
@@ -29,6 +27,14 @@
 (defvar media-dir '("shows/" "torrents/")
   "A directory or list of directories - relative to
 `media-dir-prefix' where media-files are found.")
+
+;; what external command to execute to open media files
+(defvar media-files-command-path
+  (cond ((memq system-type '(windows-nt cygwin))
+         "c:/Program Files/VideoLAN/VLC/vlc")
+        ((eq system-type 'darwin)
+         "open")
+        (t "vlc")))
 
 (defvar media-file-regexp "\\(\\.avi$\\|\\.mp4$\\|\\.mpg$\\|\\.mpeg\\)")
 
@@ -52,14 +58,22 @@
     (define-key map (kbd "q") 'bury-buffer)
     (define-key map (kbd "n") 'next-line)
     (define-key map (kbd "p") 'previous-line)
+    (define-key map (kbd "o") 'media-file-open-file)
     (setq media-files-mode-map map)))
 
 (defvar media-files-checkbox-map nil)
-(setq media-files-checkbox-map
+(unless media-files-chekbox-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "SPC") 'media-file-toggle-checkbox)
     (define-key map [(mouse-1)] 'media-file-mouse-toggle-checkbox)
-    map))
+    (setq media-files-checkbox-map map)))
+
+(defvar media-files-filename-map nil)
+(unless media-files-filename-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map [(mouse-2)] 'media-file-mouse-open-file)
+    (define-key map (kbd "RET") 'media-file-open-file)
+    (setq media-files-filename-map map)))
 
 (defun media-files-mode ()
   (kill-all-local-variables)
@@ -94,18 +108,20 @@
   (if (< arg 0)
       (media-file-previous-item (- 0 arg))
     (dotimes (n arg)
-      (goto-char (next-single-property-change (point) 'user)))))
+      (let ((x (next-single-property-change (point) 'user)))
+        (when x (goto-char x))))))
 
 (defun media-file-previous-item (arg)
   (interactive "p")
   (if (< arg 0)
       (media-file-next-item (- 0 arg))
     (dotimes (n arg)
-      (goto-char (previous-single-property-change (point) 'user)))))
+      (let ((x (previous-single-property-change (point) 'user)))
+        (if x (goto-char x) (goto-char (point-min)))))))
 
 (defun media-file-insert-line (media-file &optional no-newline)
   (media-files-assert-mode)
-  (beginning-of-line)
+  (forward-line 0)
   (let ((beg-line (point))
         beg-file-name)
     (dolist (user media-users)
@@ -124,7 +140,9 @@
     (add-text-properties beg-line (point)
             (list 'media-file media-file))
     (add-text-properties beg-file-name (point)
-            (list 'help-echo "Left click: open file")))
+            (list 'mouse-faece 'hilight
+                  'keymap media-files-filename-map
+                  'help-echo "Middle click: open file")))
   (unless no-newline (newline)))
 
 (defun media-file-mouse-toggle-checkbox (event)
@@ -144,13 +162,27 @@
     ;; note that because *media-files* is a defstruct, this line actually
     ;; modifies the global variable, not some copy of it
     (media-file-toggle-user-watched media-file user)
-    (beginning-of-line)
+    (forward-line 0)
     (setq beg (point))
     (end-of-line)
     (delete-region beg (point))
     (media-file-insert-line media-file 'no-newline)
     (goto-char saved-point)
     ))
+
+(defun media-file-mouse-open-file (event)
+  (interactive "e")
+  (save-excursion
+    (mouse-set-point event)
+    (media-file-open-file)))
+
+(defun media-file-open-file ()
+  "Open the media file on the current line by executing
+`media-files-command-path' on it."
+  (interactive)
+  (media-files-assert-mode)
+  (let ((media-file (get-text-property (point) 'media-file)))
+    (shell-command (concat "\"" media-files-command-path "\" \"" (media-file-full-path media-file) "\" &") nil nil)))
 
 (defun display-media-files ()
   (interactive)
@@ -163,6 +195,8 @@
   ;;(display-buffer media-file-buffer)
   (switch-to-buffer-other-window media-file-buffer)
   )
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun initialize-media-files ()
   (setq *media-files* (scan-media-files)))
@@ -183,6 +217,9 @@
                  (push (make-media-file :path file) files)))))
       (setq files (apply 'append files (mapcar 'scan-media-files subdirs)))
       files)))
+
+(defun media-file-full-path (media-file)
+  (concat media-dir-prefix (media-file-path media-file)))
 
 (defun media-user-watched-p (media-file user)
   (memq user (media-file-users-watched media-file)))
