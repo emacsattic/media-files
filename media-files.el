@@ -25,9 +25,9 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; TODO
+;; * support undo
 ;; * save/load database file
 ;; * bind 1, 2, 3, etc. to toggle users on line
-;; * toggle whether to display watched files
 ;; * toggle all checkboxes on line
 ;; * sort file list
 ;; * custom display format (like ibuffer)
@@ -72,6 +72,11 @@
 
 (defconst media-file-buffer " *media-files*")
 
+(defvar media-files-filter-watched nil
+  "If non-nil, then media files that have been watched by all
+users in `media-users' will not be displayed in the media file
+list.")
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; functions related to the media file display list
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -91,6 +96,7 @@
     (define-key map (kbd "n") 'next-line)
     (define-key map (kbd "p") 'previous-line)
     (define-key map (kbd "o") 'media-file-open-file)
+    (define-key map (kbd "t") 'media-files-toggle-watched)
     (setq media-files-mode-map map)))
 
 (defvar media-files-checkbox-map nil)
@@ -126,7 +132,10 @@
       (message "Updating media list..."))
     (toggle-read-only 0)
     (erase-buffer)
-    (mapc 'media-file-insert-line *media-files*)
+    (dolist (media-file *media-files*)
+      (when (or (not media-files-filter-watched)
+            (media-file-users-not-watched media-file))
+        (media-file-insert-line media-file)))
     (toggle-read-only 1)
     (goto-char (point-min))
     (forward-line (1- line))
@@ -219,6 +228,12 @@
   (media-files-assert-mode)
   (let ((media-file (get-text-property (point) 'media-file)))
     (open-media-file media-file)))
+
+(defun media-files-toggle-watched ()
+  (interactive)
+  (setq media-files-filter-watched (not media-files-filter-watched))
+  (when (derived-mode-p 'media-files-mode)
+    (media-files-update t)))
 
 (defun display-media-files ()
   (interactive)
