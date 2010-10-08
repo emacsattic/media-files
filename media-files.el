@@ -51,7 +51,7 @@
 
 (defvar media-dir '("shows/" "torrents/")
   "A directory or list of directories - relative to
-`media-dir-prefix' where media-files are found.")
+`media-dir-prefix' - where media-files are found.")
 
 ;; what external command to execute to open media files
 (defvar media-files-command-path
@@ -236,9 +236,17 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun initialize-media-files ()
+  "Use `scan-media-files' to initialize `*media-files*'. This is
+expensive!"
   (setq *media-files* (scan-media-files)))
 
 (defun scan-media-files (&optional dir)
+  "Scan DIR recursively for all media files that match
+`media-file-regexp'.  The result is a list of `media-file'
+structures.  DIR can be a list, in which case each directory in
+DIR is scanned and the results are accumulated into a single
+list.  This is an expensive operation and it can take several
+seconds depending on the size of the directories."
   (unless dir (setq dir media-dir))
   (if (listp dir)
       (apply 'append (mapcar 'scan-media-files dir))
@@ -256,12 +264,17 @@
       files)))
 
 (defun media-file-full-path (media-file)
+  "Get the full path to the file in MEDIA-FILE, including the
+prefix specified by `media-dir-prefix'."
   (concat media-dir-prefix (media-file-path media-file)))
 
 (defun media-user-watched-p (media-file user)
+  "Return t if USER has watched MEDIA-FILE."
   (memq user (media-file-users-watched media-file)))
 
 (defun media-file-toggle-user-watched (media-file user)
+  "Toggle whether USER has watched MEDIA-FILE.  This
+destructively modifies MEDIA-FILE by side effect."
   (if (media-user-watched-p media-file user)
       (setf (media-file-users-watched media-file)
             (delete user (media-file-users-watched media-file)))
