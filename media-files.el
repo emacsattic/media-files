@@ -29,6 +29,7 @@
 ;; * bind 1, 2, 3, etc. to toggle users on line
 ;; * toggle whether to display watched files
 ;; * toggle all checkboxes on line
+;; * sort file list
 ;; * custom display format (like ibuffer)
 ;; * when open, watch database for changes and automatically re-load;
 ;;   otherwise, keep database closed when not in use.
@@ -217,7 +218,7 @@
   (interactive)
   (media-files-assert-mode)
   (let ((media-file (get-text-property (point) 'media-file)))
-    (shell-command (concat "\"" media-files-command-path "\" \"" (media-file-full-path media-file) "\" &") nil nil)))
+    (open-media-file media-file)))
 
 (defun display-media-files ()
   (interactive)
@@ -262,6 +263,25 @@ seconds depending on the size of the directories."
                  (push (make-media-file :path file) files)))))
       (setq files (apply 'append files (mapcar 'scan-media-files subdirs)))
       files)))
+
+(defun open-media-file (media-file)
+  "Open MEDIA-FILE using the program specified by
+`media-files-command-path'.  When called interactively, user can
+select MEDIA-FILE from the list `*media-files*'."
+  (interactive
+   (let ((file-names (mapcar 'media-file-base-name *media-files*))
+         file-name
+         result)
+     (setq file-name (completing-read "Open file: " file-names))
+     (setq result (find-if (lambda (x) (string= (media-file-base-name x) file-name)) *media-files*))
+     (list result)))
+  (when media-file
+    (call-process media-files-command-path nil 0 nil
+                  (media-file-full-path media-file))))
+
+(defun media-file-base-name (media-file)
+  "Get the non-directory basename of the file in MEDIA-FILE."
+  (file-name-nondirectory (media-file-path media-file)))
 
 (defun media-file-full-path (media-file)
   "Get the full path to the file in MEDIA-FILE, including the
