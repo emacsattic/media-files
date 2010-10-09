@@ -43,28 +43,19 @@
 ;; local variables
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defvar media-dir-prefix
-  (cond ((memq system-type '(windows-nt cygwin)) "z:/")
-        ((eq system-type 'darwin) "/Volumes/share")
+(defvar media-dir-prefix "~")
 
-        ;; assume we're on the file server, where everything is local
-        (t "~")))
-
-(defvar media-dir '("shows/" "torrents/")
+(defvar media-dir "videos"
   "A directory or list of directories - relative to
 `media-dir-prefix' - where media-files are found.")
 
 ;; what external command to execute to open media files
-(defvar media-files-command-path
-  (cond ((memq system-type '(windows-nt cygwin))
-         "c:/Program Files/VideoLAN/VLC/vlc")
-        ((eq system-type 'darwin)
-         "open")
-        (t "vlc")))
+(defvar media-files-command-path "vlc"
+  "What program to use to open media files.")
 
 (defvar media-file-regexp "\\(\\.avi$\\|\\.mp4$\\|\\.mpg$\\|\\.mpeg\\)")
 
-(defvar media-users '(erinne philip))
+(defvar media-users '(me))
 
 (defstruct media-file path users-watched)
 
@@ -76,6 +67,28 @@
   "If non-nil, then media files that have been watched by all
 users in `media-users' will not be displayed in the media file
 list.")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; my preferred config
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun media-files-setup ()
+  (setq media-dir-prefix
+        (cond ((memq system-type '(windows-nt cygwin)) "z:/")
+              ((eq system-type 'darwin) "/Volumes/share")
+              (t "~")))
+
+  (setq media-dir '("shows/" "torrents/"))
+
+  (setq media-files-command-path
+        (cond ((memq system-type '(windows-nt cygwin))
+               "c:/Program Files/VideoLAN/VLC/vlc")
+              ((eq system-type 'darwin)
+               "open")
+              (t "vlc")))
+
+  (setq media-users '(erinne philip))
+  )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; functions related to the media file display list
