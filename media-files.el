@@ -224,10 +224,10 @@ list.")
     ;; modifies the global variable, not some copy of it
     (when user
       (media-file-toggle-user-watched media-file user)
-      (media-file-update-line))
+      (media-file-update-line media-file))
     ))
 
-(defun media-file-update-line ()
+(defun media-file-update-line (media-file)
   (let ((saved-point (point))
         beg)
     (forward-line 0)
