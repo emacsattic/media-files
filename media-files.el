@@ -27,9 +27,10 @@
 ;; TODO
 ;; * support undo
 ;; * save/load database file
-;; * bind 1, 2, 3, etc. to toggle users on line
 ;; * toggle all checkboxes on line
-;; * sort file list
+;; * support filters
+;; * keep original media file list separate from the one in buffer;
+;;   this lets us, for example, remove a filter or sort.
 ;; * custom display format (like ibuffer)
 ;; * when open, watch database for changes and automatically re-load;
 ;;   otherwise, keep database closed when not in use.
@@ -57,7 +58,7 @@
 
 (defvar media-users '(me))
 
-(defstruct media-file path users-watched)
+(defstruct media-file path time users-watched)
 
 (defvar *media-files* nil)
 
@@ -67,6 +68,10 @@
   "If non-nil, then media files that have been watched by all
 users in `media-users' will not be displayed in the media file
 list.")
+
+(defvar media-files-sort-by nil
+  "How to sort the list of media files.  Can be nil, `name', or
+`time'.")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; my preferred config
@@ -88,6 +93,7 @@ list.")
               (t "vlc")))
 
   (setq media-users '(erinne philip))
+  (setq media-files-sort-by 'time)
   )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -196,8 +202,9 @@ list.")
             (list 'mouse-face 'highlight
                   'keymap media-files-checkbox-map
                   'help-echo (format "Left click: toggle user %s" user)))
-        (insert "     ")
+        (insert "   ")
         (put-text-property beg (point) 'user user)))
+    (insert (format-time-string "%D" (media-file-time media-file)) "  ")
     (setq beg-file-name (point))
     (insert (file-name-nondirectory (media-file-path media-file)))
     (add-text-properties beg-line (point)
@@ -278,6 +285,7 @@ line as an item."
 
 (defun display-media-files ()
   (interactive)
+  (sort-media-files)
   (with-current-buffer (get-buffer-create media-file-buffer)
     (when (not (eq major-mode 'media-files-mode))
       (media-files-mode))
@@ -316,9 +324,18 @@ seconds depending on the size of the directories."
               (is-dir (car (cdr x))))
           (cond (is-dir (push file subdirs))
                 ((string-match media-file-regexp file)
-                 (push (make-media-file :path file) files)))))
+                 (push (make-media-file :path file :time (nth 6 x)) files)))))
       (setq files (apply 'append files (mapcar 'scan-media-files subdirs)))
       files)))
+
+(defun sort-media-files (&optional sort-by)
+  "Sort `*media-files*' according to SORT-BY.  If nil, SORT-BY
+defaults to `media-files-sort-by'."
+  (when (null sort-by) (setq sort-by media-files-sort-by))
+  (cond ((equal sort-by 'name)
+         (setq *media-files* (sort *media-files* 'media-file-name-lessp)))
+        ((equal sort-by 'time)
+         (setq *media-files* (sort *media-files* 'media-file-time-lessp)))))
 
 (defun open-media-file (media-file)
   "Open MEDIA-FILE using the program specified by
@@ -369,6 +386,13 @@ defaults to `media-users'."
   (unless media-files (setq media-files *media-files*))
   ;; remove all media files that have been watched by everyone in USERS
   (remove-if (lambda (x) (null (media-file-users-not-watched x users))) media-files))
+
+(defun media-file-name-lessp (a b)
+  (string-lessp (media-file-base-name a) (media-file-base-name b)))
+
+(defun media-file-time-lessp (a b)
+  (< 0 (time-to-seconds (time-subtract (media-file-time a) (media-file-time b)))))
+  ;; (time-less-p (media-file-time b) (media-file-time a)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
