@@ -110,6 +110,14 @@ list.")
     (define-key map (kbd "p") 'previous-line)
     (define-key map (kbd "o") 'media-file-open-file)
     (define-key map (kbd "t") 'media-files-toggle-watched)
+    (define-key map (kbd "1")
+      (lambda () (interactive) (media-file-toggle-checkbox 0)))
+    (define-key map (kbd "2")
+      (lambda () (interactive) (media-file-toggle-checkbox 1)))
+    (define-key map (kbd "3")
+      (lambda () (interactive) (media-file-toggle-checkbox 2)))
+    (define-key map (kbd "4")
+      (lambda () (interactive) (media-file-toggle-checkbox 3)))
     (setq media-files-mode-map map)))
 
 (defvar media-files-checkbox-map nil)
@@ -207,17 +215,21 @@ list.")
     (mouse-set-point event)
     (media-file-toggle-checkbox)))
 
-(defun media-file-toggle-checkbox ()
+(defun media-file-toggle-checkbox (&optional arg)
   (interactive)
   (media-files-assert-mode)
   (let ((media-file (get-text-property (point) 'media-file))
-        (user (get-text-property (point) 'user))
-        saved-point
-        beg)
-    (setq saved-point (point))
+        (user (media-file-nth-user arg)))
     ;; note that because *media-files* is a defstruct, this line actually
     ;; modifies the global variable, not some copy of it
-    (media-file-toggle-user-watched media-file user)
+    (when user
+      (media-file-toggle-user-watched media-file user)
+      (media-file-update-line))
+    ))
+
+(defun media-file-update-line ()
+  (let ((saved-point (point))
+        beg)
     (forward-line 0)
     (setq beg (point))
     (end-of-line)
@@ -225,8 +237,24 @@ list.")
     (delete-region beg (point))
     (media-file-insert-line media-file 'no-newline)
     (toggle-read-only 1)
-    (goto-char saved-point)
-    ))
+    (goto-char saved-point)))
+
+(defun media-file-nth-user (&optional arg)
+  "Return the ARG-th user on the current line.  If ARG is nil,
+then return the user under point.  Note that if ARG is greater
+than the number of user on the current line, then this function
+will wrap around to the next line, counting the filenames on each
+line as an item."
+  (media-files-assert-mode)
+  (let (user saved-point)
+    (when arg
+      (setq saved-point (point))
+      (forward-line 0)
+      (media-file-next-item (prefix-numeric-value arg)))
+    (setq user (get-text-property (point) 'user))
+    (when arg
+      (goto-char saved-point))
+    user))
 
 (defun media-file-mouse-open-file (event)
   (interactive "e")
