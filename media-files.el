@@ -58,7 +58,7 @@
 
 (defvar media-users '(me))
 
-(defstruct media-file path time users-watched)
+(defstruct media-file path time users-watched series-name episode-number)
 
 (defvar *media-files* nil)
 
@@ -73,28 +73,8 @@ list.")
   "How to sort the list of media files.  Can be nil, `name', or
 `time'.")
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; my preferred config
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defun media-files-setup ()
-  (setq media-dir-prefix
-        (cond ((memq system-type '(windows-nt cygwin)) "z:/")
-              ((eq system-type 'darwin) "/Volumes/share")
-              (t "~")))
-
-  (setq media-dir '("shows/" "torrents/"))
-
-  (setq media-files-command-path
-        (cond ((memq system-type '(windows-nt cygwin))
-               "c:/Program Files/VideoLAN/VLC/vlc")
-              ((eq system-type 'darwin)
-               "open")
-              (t "vlc")))
-
-  (setq media-users '(erinne philip))
-  (setq media-files-sort-by 'time)
-  )
+;; TODO document this.  see media-files-config.el for example
+(defvar media-files-series-alist nil)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; functions related to the media file display list
@@ -206,13 +186,16 @@ list.")
         (put-text-property beg (point) 'user user)))
     (insert (format-time-string "%D" (media-file-time media-file)) "  ")
     (setq beg-file-name (point))
-    (insert (file-name-nondirectory (media-file-path media-file)))
+    (insert (or (media-file-series-name media-file) "unknown"))
+    (insert " ")
+    (insert (format "%s" (media-file-episode-number media-file)))
     (add-text-properties beg-line (point)
             (list 'media-file media-file))
     (add-text-properties beg-file-name (point)
             (list 'mouse-face 'highlight
                   'keymap media-files-filename-map
-                  'help-echo "Middle click: open file")))
+                  'help-echo (media-file-base-name media-file))))
+                  ;; 'help-echo "Middle click: open file"
   (insert " ") ;; keeps the mouse highlight from spilling over to next line
   (unless no-newline (newline)))
 
@@ -321,10 +304,15 @@ seconds depending on the size of the directories."
             (directory-files-and-attributes full-dir t "^[^.]" 'nosort))
       (dolist (x contents)
         (let ((file (file-relative-name (car x) media-dir-prefix))
+              (name (file-name-nondirectory (car x)))
               (is-dir (car (cdr x))))
           (cond (is-dir (push file subdirs))
                 ((string-match media-file-regexp file)
-                 (push (make-media-file :path file :time (nth 6 x)) files)))))
+                 (let ((media-file
+                        (make-media-file :path file :time (nth 6 x))))
+                   (media-file-guess-series-name media-file)
+                   (media-file-guess-episode-number media-file)
+                   (push media-file files))))))
       (setq files (apply 'append files (mapcar 'scan-media-files subdirs)))
       files)))
 
@@ -393,6 +381,36 @@ defaults to `media-users'."
 (defun media-file-time-lessp (a b)
   (< 0 (time-to-seconds (time-subtract (media-file-time a) (media-file-time b)))))
   ;; (time-less-p (media-file-time b) (media-file-time a)))
+
+;; functions for getting the series names and episode numbers
+;; TODO support per-show regexp for naming and episode numbering,
+;;      such as shows that have season number in directory name
+
+(defun make-series-regexp (show)
+  (cond ((stringp show) (replace-regexp-in-string " " ".*" show))
+        ((cdr show) (cdr show))
+        (t (replace-regexp-in-string " " ".*" (car show)))))
+
+(defun media-file-guess-series-name (media-file)
+  (let ((result
+         (find-if (lambda (x) (string-match (make-series-regexp x)
+                                            (media-file-path media-file)))
+                  media-files-series-alist)))
+    (when result
+      (setf (media-file-series-name media-file) result))))
+
+(defun media-file-guess-episode-number (media-file)
+  (let ((name (media-file-base-name media-file))
+        (result))
+    (setq result
+          (if (or (string-match "S\\([0-9][0-9]?\\)E\\([0-9][0-9]?\\)" name)
+                  (string-match "\\([0-9][0-9]?\\)x\\([0-9][0-9]?\\)" name)
+                  (string-match "\\([0-9][0-9]?\\)\\([0-9][0-9]\\)" name)
+                  (string-match "s\\([0-9][0-9]?\\)_ep\\([0-9][0-9]?\\)" name)
+                  (string-match "season_\\([0-9][0-9]?\\)_ep_\\([0-9][0-9]?\\)" name))
+              (cons (match-string 1 name) (match-string 2 name))))
+    (when result
+      (setf (media-file-episode-number media-file) result))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
