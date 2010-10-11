@@ -383,7 +383,7 @@ defaults to `media-users'."
   (string-lessp (media-file-base-name a) (media-file-base-name b)))
 
 (defun media-file-time-lessp (a b)
-  (< 0 (time-to-seconds (time-subtract (media-file-time a) (media-file-time b)))))
+  (< 0 (float-time (time-subtract (media-file-time a) (media-file-time b)))))
   ;; (time-less-p (media-file-time b) (media-file-time a)))
 
 ;; functions for getting the series names and episode numbers
