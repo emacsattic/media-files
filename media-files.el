@@ -304,18 +304,21 @@ seconds depending on the size of the directories."
       (setq contents
             (directory-files-and-attributes full-dir t "^[^.]" 'nosort))
       (dolist (x contents)
-        (let ((file (file-relative-name (car x) media-dir-prefix))
-              (name (file-name-nondirectory (car x)))
-              (is-dir (car (cdr x))))
-          (cond (is-dir (push file subdirs))
+        (let ((file (file-relative-name (car x) media-dir-prefix)))
+          (cond ((cadr x) (push file subdirs)) ;; test if directory
                 ((string-match media-file-regexp file)
-                 (let ((media-file
-                        (make-media-file :path file :time (nth 6 x))))
-                   (media-file-guess-series-name media-file)
-                   (media-file-guess-episode-number media-file)
-                   (push media-file files))))))
+                 (push (file-attributes-to-media-file x) files)))))
       (setq files (apply 'append files (mapcar 'scan-media-files subdirs)))
       files)))
+
+(defun file-attributes-to-media-file (file)
+  (let ((media-file
+         (make-media-file
+          :path (file-relative-name (car file) media-dir-prefix)
+          :time (nth 6 file))))
+    (media-file-guess-series-name media-file)
+    (media-file-guess-episode-number media-file)
+    media-file))
 
 (defun sort-media-files (&optional sort-by)
   "Sort `*media-files*' according to SORT-BY.  If nil, SORT-BY
