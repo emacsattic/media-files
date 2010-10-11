@@ -297,19 +297,12 @@ DIR is scanned and the results are accumulated into a single
 list.  This is an expensive operation and it can take several
 seconds depending on the size of the directories."
   (unless dir (setq dir media-dir))
-  (if (listp dir)
-      (apply 'append (mapcar 'scan-media-files dir))
-    (let ((full-dir (concat media-dir-prefix dir))
-          contents subdirs files)
-      (setq contents
-            (directory-files-and-attributes full-dir t "^[^.]" 'nosort))
-      (dolist (x contents)
-        (let ((file (file-relative-name (car x) media-dir-prefix)))
-          (cond ((cadr x) (push file subdirs)) ;; test if directory
-                ((string-match media-file-regexp file)
-                 (push (file-attributes-to-media-file x) files)))))
-      (setq files (apply 'append files (mapcar 'scan-media-files subdirs)))
-      files)))
+  (let ((dirs (if (listp dir) dir (list dir)))
+        files media-files)
+    (setq files (apply 'append (mapcar (lambda (x) (directory-files-and-attributes-recursive (concat media-dir-prefix x) t media-file-regexp 'nosort)) dirs)))
+    (dolist (file files)
+      (push (file-attributes-to-media-file file) media-files))
+    media-files))
 
 (defun file-attributes-to-media-file (file)
   (let ((media-file
@@ -416,6 +409,18 @@ defaults to `media-users'."
     (when result
       (setf (media-file-episode-number media-file) result))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; miscellaneous utility functions
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun directory-files-and-attributes-recursive (directory &optional full match nosort id-format)
+  (let (files)
+    (dolist (x (directory-files-and-attributes directory full "^[^.]" nosort id-format))
+      (if (eq t (cadr x)) ;; test if `x' is a directory
+          (setq files (append (directory-files-and-attributes-recursive (car x) full match nosort id-format) files))
+        (when (string-match match (file-name-nondirectory (car x)))
+          (push x files))))
+    files))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (provide 'media-files)
