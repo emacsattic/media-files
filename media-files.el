@@ -125,20 +125,20 @@ list.")
   (use-local-map media-files-mode-map)
   (setq major-mode 'media-files-mode
         mode-name "Media-Files")
-  (set (make-local-variable 'revert-buffer-function) #'media-files-update)
   (run-mode-hooks 'media-files-mode-hook)
   )
 
-(defun media-files-update (arg &optional silent)
+(defun media-files-update (&optional arg silent)
   "Revert the media files buffer to the contents of
-`*media-files*'.  This does not rescan the filesystem for media
-files.  Use `update-media-files` for that."
-  ;; the dummy arg is needed so we're compatible with revert-buffer-function
+`*media-files*'.  If optional prefix ARG is non-nil, then first
+scan the filesystem and update `*media-files*' using
+`update-media-files'."
   (interactive "P")
   (media-files-assert-mode)
   (let ((line (line-number-at-pos (point))))
     (unless silent
       (message "Updating media list..."))
+    (when arg (update-media-files))
     (toggle-read-only 0)
     (erase-buffer)
     (dolist (media-file *media-files*)
@@ -266,7 +266,7 @@ line as an item."
   (interactive)
   (setq media-files-filter-watched (not media-files-filter-watched))
   (when (derived-mode-p 'media-files-mode)
-    (media-files-update t)))
+    (media-files-update)))
 
 (defun display-media-files ()
   (interactive)
@@ -274,7 +274,7 @@ line as an item."
   (with-current-buffer (get-buffer-create media-file-buffer)
     (when (not (eq major-mode 'media-files-mode))
       (media-files-mode))
-    (media-files-update t))
+    (media-files-update))
 
   ;; TODO customize this behavior, support save and restore window config
   ;;(display-buffer media-file-buffer)
