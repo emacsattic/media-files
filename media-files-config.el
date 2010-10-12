@@ -54,7 +54,7 @@
 
   (setq media-dir-prefix
         (cond ((memq system-type '(windows-nt cygwin)) "z:/")
-              ((eq system-type 'darwin) "/Volumes/share")
+              ((eq system-type 'darwin) "/Volumes/share/")
               (t "~")))
 
   (setq media-dir '("shows/" "torrents/"))
