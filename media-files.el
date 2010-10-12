@@ -34,8 +34,6 @@
 ;; * custom display format (like ibuffer)
 ;; * when open, watch database for changes and automatically re-load;
 ;;   otherwise, keep database closed when not in use.
-;; * detect duplicates, only filename (not directory) determines uniqueness;
-;;   handle case where file is moved.
 ;; * metadata - recognize show and episode names, figure out where to refile
 
 (require 'cl)
@@ -132,6 +130,9 @@ list.")
   )
 
 (defun media-files-update (arg &optional silent)
+  "Revert the media files buffer to the contents of
+`*media-files*'.  This does not rescan the filesystem for media
+files.  Use `update-media-files` for that."
   ;; the dummy arg is needed so we're compatible with revert-buffer-function
   (interactive "P")
   (media-files-assert-mode)
@@ -284,34 +285,76 @@ line as an item."
 ;; functions related to the media-file data structure
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun initialize-media-files ()
-  "Use `scan-media-files' to initialize `*media-files*'. This is
-expensive!"
-  (setq *media-files* (scan-media-files)))
+(defun media-file-data (media-file)
+  "Return the path and time of MEDIA-FILE as a pair."
+  (cons (media-file-path media-file) (media-file-time media-file)))
 
-(defun scan-media-files (&optional dir)
+(defun scan-media-dir (&optional dir)
   "Scan DIR recursively for all media files that match
-`media-file-regexp'.  The result is a list of `media-file'
-structures.  DIR can be a list, in which case each directory in
-DIR is scanned and the results are accumulated into a single
-list.  This is an expensive operation and it can take several
-seconds depending on the size of the directories."
-  (unless dir (setq dir media-dir))
-  (let ((dirs (if (listp dir) dir (list dir)))
-        files media-files)
-    (setq files (apply 'append (mapcar (lambda (x) (directory-files-and-attributes-recursive (concat media-dir-prefix x) t media-file-regexp 'nosort)) dirs)))
-    (dolist (file files)
-      (push (file-attributes-to-media-file file) media-files))
-    media-files))
+`media-file-regexp'.  The result is a list of pairs of file names
+and modification times. DIR can be a list, in which case each
+directory in DIR is scanned and the results are accumulated into
+a single list.  If DIR is nil, then use `media-dir'."
+  (let ((dirs (cond ((null dir) media-dir)
+                    ((listp dir) dir)
+                    (t (list dir))))
+        files)
 
-(defun file-attributes-to-media-file (file)
-  (let ((media-file
-         (make-media-file
-          :path (file-relative-name (car file) media-dir-prefix)
-          :time (nth 6 file))))
-    (media-file-guess-series-name media-file)
-    (media-file-guess-episode-number media-file)
-    media-file))
+    (setq files
+          (apply 'append (mapcar (lambda (x) (directory-files-and-attributes-recursive (concat media-dir-prefix x) t media-file-regexp 'nosort)) dirs)))
+    (mapcar (lambda (x) (cons (file-relative-name (car x) media-dir-prefix)
+                              (nth 6 x)))
+            files)))
+
+(defun update-media-files (&optional dir)
+  "Update `*media-files*'.  This adds new files, removes deleted
+files, and updates the path and timestamp of any moved files
+without changing the `media-file-users-watched' field.  See
+`scan-media-dir' for description of DIR argument."
+  (interactive)
+  (let (prev-files files new-files dead-files moved-files)
+    (setq prev-files (mapcar 'media-file-data *media-files*))
+
+    ;; without this check, if media-dir-prefix isn't mounted,
+    ;; then we'll end up *removing* all of the files in *media-files*
+    ;; because we think they're dead files.
+    (if (not (file-directory-p media-dir-prefix))
+        (message "Directory does not exist: %s" media-dir-prefix)
+
+      (setq files (scan-media-dir dir))
+
+      (setq new-files (set-difference files prev-files :test 'equal))
+      (setq dead-files (set-difference prev-files files :test 'equal))
+
+      ;; detect moved files.
+      ;; this might be very slow if a lot of files have been moved
+      (setq moved-files nil)
+      (dolist (x dead-files)
+        (let ((y (find-if (lambda (y) (string= (file-name-nondirectory (car x)) (file-name-nondirectory (car y)))) new-files)))
+          (when y
+            (setq dead-files (delete x dead-files))
+            (setq new-files (delete y new-files))
+            (push (cons x y) moved-files))))
+
+      (dolist (x new-files)
+        (let ((media-file
+               (make-media-file :path (car x) :time (cdr x))))
+          (media-file-guess-series-name media-file)
+          (media-file-guess-episode-number media-file)
+          (push media-file *media-files*)))
+
+      (dolist (x dead-files)
+        (setq *media-files* (delete-if (lambda (y) (string= (media-file-path y) (car x))) *media-files*)))
+
+      ;; update the path and time of each moved media file
+      (dolist (x *media-files*)
+        (let ((moved-file (assoc (media-file-data x) moved-files)))
+          (when moved-file
+            (setf (media-file-path x) (car (cdr moved-file)))
+            (setf (media-file-time x) (cdr (cdr moved-file))))))
+
+      (list (length new-files) (length dead-files) (length moved-files))
+      )))
 
 (defun sort-media-files (&optional sort-by)
   "Sort `*media-files*' according to SORT-BY.  If nil, SORT-BY
