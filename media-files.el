@@ -128,6 +128,19 @@ list.")
   (run-mode-hooks 'media-files-mode-hook)
   )
 
+(defun display-media-files ()
+  (interactive)
+  (sort-media-files)
+  (with-current-buffer (get-buffer-create media-file-buffer)
+    (when (not (eq major-mode 'media-files-mode))
+      (media-files-mode))
+    (media-files-update))
+
+  ;; TODO customize this behavior, support save and restore window config
+  ;;(display-buffer media-file-buffer)
+  (switch-to-buffer-other-window media-file-buffer)
+  )
+
 (defun media-files-update (&optional arg silent)
   "Revert the media files buffer to the contents of
 `*media-files*'.  If optional prefix ARG is non-nil, then first
@@ -267,19 +280,6 @@ line as an item."
   (setq media-files-filter-watched (not media-files-filter-watched))
   (when (derived-mode-p 'media-files-mode)
     (media-files-update)))
-
-(defun display-media-files ()
-  (interactive)
-  (sort-media-files)
-  (with-current-buffer (get-buffer-create media-file-buffer)
-    (when (not (eq major-mode 'media-files-mode))
-      (media-files-mode))
-    (media-files-update))
-
-  ;; TODO customize this behavior, support save and restore window config
-  ;;(display-buffer media-file-buffer)
-  (switch-to-buffer-other-window media-file-buffer)
-  )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; functions related to the media-file data structure
