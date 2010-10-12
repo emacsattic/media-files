@@ -70,3 +70,4 @@
   (setq media-files-sort-by 'time)
   )
 
+(provide 'media-files-config)
