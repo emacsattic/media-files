@@ -49,8 +49,11 @@
 `media-dir-prefix' - where media-files are found.")
 
 ;; what external command to execute to open media files
-(defvar media-files-command-path "vlc"
-  "What program to use to open media files.")
+(defvar media-files-command-path '("vlc" "mplayer" "totem")
+  "What program will `open-media-file' use to open a media file.
+This can be either a string or a list of strings.  In the latter
+case, it looks for each program and uses the first that is
+found.")
 
 (defvar media-file-regexp "\\(\\.avi$\\|\\.mp4$\\|\\.mpg$\\|\\.mpeg\\)")
 
@@ -377,8 +380,15 @@ select MEDIA-FILE from the list `*media-files*'."
      (setq result (find-if (lambda (x) (string= (media-file-base-name x) file-name)) *media-files*))
      (list result)))
   (when media-file
-    (call-process media-files-command-path nil 0 nil
-                  (media-file-full-path media-file))))
+    (let ((command-paths (if (listp media-files-command-path)
+                             media-files-command-path
+                           (list media-files-command-path)))
+          command-path)
+      (setq command-path (find-if 'executable-find command-paths))
+      (if command-path
+          (call-process command-path nil 0 nil
+                        (media-file-full-path media-file))
+        (message "No media player found: %s" command-paths)))))
 
 (defun media-file-base-name (media-file)
   "Get the non-directory basename of the file in MEDIA-FILE."

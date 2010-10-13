@@ -64,7 +64,7 @@
                "c:/Program Files/VideoLAN/VLC/vlc")
               ((eq system-type 'darwin)
                "open")
-              (t "vlc")))
+              (t '("vlc" "mplayer" "totem"))))
 
   (setq media-users '(erinne philip))
   (setq media-files-sort-by 'time)
