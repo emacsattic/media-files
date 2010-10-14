@@ -460,6 +460,8 @@ defaults to `media-users'."
                   (string-match "season_\\([0-9][0-9]?\\)_ep_\\([0-9][0-9]?\\)" name))
               (cons (match-string 1 name) (match-string 2 name))))
     (when result
+      (setcar result (string-to-number (car result)))
+      (setcdr result (string-to-number (cdr result)))
       (setf (media-file-episode-number media-file) result))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
