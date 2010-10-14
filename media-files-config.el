@@ -24,19 +24,13 @@
     "South Park"
     "Weeds"
 
-    "Angel"
-    "Bones"
     "Dollhouse"
     "Battlestar Galactica"
     "Carnivale"
     "Curb Your Enthusiasm"
     "Deadwood"
-    "Extras"
-    "Firefly"
     "John Adams"
     "Malcolm in the Middle"
-    "Rome"
-    "Scrubs"
     "Sex and the City"
     "Star Trek Voyager"
     "Star Trek DS9" ;; or Deep Space Nine
@@ -46,7 +40,14 @@
     "The Wonder Years"
     "Veronica Mars"
     "X-Files"
-    "Star Trek The Next Generation") ;; or TNG
+    "Star Trek The Next Generation"
+    "Angel"
+    "Bones"
+    "Extras"
+    "Firefly"
+    "Scrubs"
+    "Rome"
+    ) ;; or TNG
   )
 
 (defun media-files-setup ()
