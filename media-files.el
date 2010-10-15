@@ -59,7 +59,7 @@ found.")
 
 (defvar media-users '(me))
 
-(defstruct media-file path time users-watched series-name episode-number)
+(defstruct media-file path time users-watched series-name episode)
 
 (defvar *media-files* nil)
 
@@ -71,8 +71,8 @@ users in `media-users' will not be displayed in the media file
 list.")
 
 (defvar media-files-sort-by nil
-  "How to sort the list of media files.  Can be nil, `name', or
-`time'.")
+  "How to sort the list of media files.  Can be nil, `filename',
+or `timestamp'.")
 
 ;; TODO document this.  see media-files-config.el for example
 (defvar media-files-series-alist nil)
@@ -342,8 +342,7 @@ without changing the `media-file-users-watched' field.  See
       (dolist (x new-files)
         (let ((media-file
                (make-media-file :path (car x) :time (cdr x))))
-          (media-file-guess-series-name media-file)
-          (media-file-guess-episode-number media-file)
+          (media-file-guess-info media-file)
           (push media-file *media-files*)))
 
       (dolist (x dead-files)
@@ -363,9 +362,9 @@ without changing the `media-file-users-watched' field.  See
   "Sort `*media-files*' according to SORT-BY.  If nil, SORT-BY
 defaults to `media-files-sort-by'."
   (when (null sort-by) (setq sort-by media-files-sort-by))
-  (cond ((equal sort-by 'name)
+  (cond ((equal sort-by 'filename)
          (setq *media-files* (sort *media-files* 'media-file-name-lessp)))
-        ((equal sort-by 'time)
+        ((equal sort-by 'timestamp)
          (setq *media-files* (sort *media-files* 'media-file-time-lessp)))))
 
 (defun open-media-file (media-file)
@@ -432,37 +431,14 @@ defaults to `media-users'."
   (< 0 (float-time (time-subtract (media-file-time a) (media-file-time b)))))
   ;; (time-less-p (media-file-time b) (media-file-time a)))
 
-;; functions for getting the series names and episode numbers
-;; TODO support per-show regexp for naming and episode numbering,
-;;      such as shows that have season number in directory name
-
-(defun make-series-regexp (show)
-  (cond ((stringp show) (replace-regexp-in-string " " ".*" show))
-        ((cdr show) (cdr show))
-        (t (replace-regexp-in-string " " ".*" (car show)))))
-
-(defun media-file-guess-series-name (media-file)
-  (let ((result
-         (find-if (lambda (x) (string-match (make-series-regexp x)
-                                            (media-file-path media-file)))
-                  media-files-series-alist)))
+;; TODO support episode string titles
+(defun media-file-guess-info (media-file)
+  (let ((result (guess-episode-info (media-file-path media-file))))
     (when result
-      (setf (media-file-series-name media-file) result))))
-
-(defun media-file-guess-episode-number (media-file)
-  (let ((name (media-file-base-name media-file))
-        (result))
-    (setq result
-          (if (or (string-match "S\\([0-9][0-9]?\\)E\\([0-9][0-9]?\\)" name)
-                  (string-match "\\([0-9][0-9]?\\)x\\([0-9][0-9]?\\)" name)
-                  (string-match "\\([0-9][0-9]?\\)\\([0-9][0-9]\\)" name)
-                  (string-match "s\\([0-9][0-9]?\\)_ep\\([0-9][0-9]?\\)" name)
-                  (string-match "season_\\([0-9][0-9]?\\)_ep_\\([0-9][0-9]?\\)" name))
-              (cons (match-string 1 name) (match-string 2 name))))
-    (when result
-      (setcar result (string-to-number (car result)))
-      (setcdr result (string-to-number (cdr result)))
-      (setf (media-file-episode-number media-file) result))))
+      (setf (media-file-series-name media-file) (car result))
+      (when (cdr result)
+        (setf (media-file-episode media-file)
+              (mapcar 'string-to-number (cdr result)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; miscellaneous utility functions
