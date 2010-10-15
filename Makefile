@@ -1,5 +1,5 @@
 #ELS=$(wildcard *.el)
-SRCS=media-files
+SRCS=media-files episode-names
 ELS=$(foreach x,$(SRCS),$x.el)
 ELCS=$(ELS:.el=.elc)
 

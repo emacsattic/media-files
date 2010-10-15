@@ -41,6 +41,8 @@
 ;; - some shows have special episodes/movies (Battlestar Galactica, Futurama,
 ;;   Extras, South Park) that have a name instead of a number
 
+(require 'cl)
+
 (defstruct series name name-regexp episode-number-regexp episode-date-regexp)
 
 (defvar series-list nil)
