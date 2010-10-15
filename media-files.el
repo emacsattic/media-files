@@ -75,9 +75,6 @@ list.")
   "How to sort the list of media files.  Can be nil, `filename',
 or `timestamp'.")
 
-;; TODO document this.  see media-files-config.el for example
-(defvar media-files-series-alist nil)
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; functions related to the media file display list
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
