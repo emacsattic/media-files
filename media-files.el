@@ -29,8 +29,6 @@
 ;; * save/load database file
 ;; * toggle all checkboxes on line
 ;; * support filters
-;; * keep original media file list separate from the one in buffer;
-;;   this lets us, for example, remove a filter or sort.
 ;; * custom display format (like ibuffer)
 ;; * when open, watch database for changes and automatically re-load;
 ;;   otherwise, keep database closed when not in use.
