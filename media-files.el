@@ -43,7 +43,9 @@
 ;; local variables
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defvar media-dir-prefix "~")
+(defvar media-dir-prefix "~/"
+  "Prefix directory where all `media-dir' subdirectories are
+found.  Must end in a slash.")
 
 (defvar media-dir "videos"
   "A directory or list of directories - relative to
