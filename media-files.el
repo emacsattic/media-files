@@ -60,7 +60,7 @@ found.")
 
 (defvar media-users '(me))
 
-(defstruct media-file path time users-watched series-name episode)
+(defstruct media-file path time users-watched episode-info)
 
 (defvar *media-files* nil)
 
@@ -438,14 +438,27 @@ defaults to `media-users'."
   (< 0 (float-time (time-subtract (media-file-time a) (media-file-time b)))))
   ;; (time-less-p (media-file-time b) (media-file-time a)))
 
-;; TODO support episode string titles
 (defun media-file-guess-info (media-file)
   (let ((result (guess-episode-info (media-file-path media-file))))
     (when result
-      (setf (media-file-series-name media-file) (car result))
-      (when (cdr result)
-        (setf (media-file-episode media-file)
-              (mapcar 'string-to-number (cdr result)))))))
+      (setf (media-file-episode-info media-file) result))))
+
+(defun media-file-series-name (media-file)
+  (and (media-file-episode-info media-file)
+       (episode-series-name (media-file-episode-info media-file))))
+
+;; used for printing,
+;; should be replaced with a function to pretty-print an episode.
+(defun media-file-episode (media-file)
+  (let ((episode (media-file-episode-info media-file)))
+    (when episode
+      (or (episode-date episode)
+          (if (episode-number episode)
+              (if (episode-season episode)
+                  (cons (episode-season episode)
+                        (episode-number episode))
+                (episode-number episode)))
+          (episode-title episode)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; miscellaneous utility functions

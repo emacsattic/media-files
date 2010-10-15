@@ -43,9 +43,14 @@
 
 (require 'cl)
 
+;; TODO support for episode title regexp
+;; user-defined data for a series
 (defstruct series name name-regexp episode-number-regexp episode-date-regexp)
 
 (defvar series-list nil)
+
+;; information that is derived from a filename and series definition
+(defstruct episode series-name season number title date)
 
 (defvar episode-number-regexp-alist
   '(("s\\(eason\\)?_?\\([0-9][0-9]?\\)_?e\\(p\\(isode\\)?\\)?_?\\([0-9][0-9]?\\)" 2 5)
@@ -55,7 +60,9 @@
 number.  Each entry contains three values: a regular expression
 and two indices of the parenthesized expressions of the regexp
 that correspond to the season and episode number,
-respectively (see `string-match').")
+respectively (see `string-match'). If only one index is provided,
+then it is interpreted as the episode number, and the season
+number is left as nil.")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -65,21 +72,31 @@ STR (usually a filename).  In the returned result, the car is the
 name of the series and the cdr is the episode number, date, or
 name.  The entire result can be nil, or it can be a series name
 with a nil episode."
-  (let (name-result episode-result)
-    (loop for x in series-list until name-result do
-          (setq name-result
+  (let (episode series-name)
+    (loop for x in series-list until episode do
+          (setq series-name
                 (and (string-match (or (series-name-regexp x)
                                        (make-series-regexp (series-name x)))
                                    str)
                      (series-name x)))
 
-          (when name-result
-            (let ((regexps (or (series-episode-date-regexp x) (series-episode-number-regexp x) episode-number-regexp-alist)))
-              (setq episode-result
-                    (try-regexps str regexps)))))
-
-    (when name-result
-      (cons name-result episode-result))))
+          (when series-name
+            (setq episode (make-episode :series-name series-name))
+            (setf (episode-date episode)
+                  (mapcar 'string-to-number
+                          (try-regexps str (series-episode-date-regexp x))))
+            (unless (episode-date episode)
+              (let ((number (try-regexps str (or (series-episode-number-regexp x)
+                                                 episode-number-regexp-alist))))
+                (cond ((= 1 (length number))
+                       (setf (episode-number episode)
+                             (string-to-number (car number))))
+                      ((= 2 (length number))
+                       (setf (episode-season episode)
+                             (string-to-number (car number)))
+                       (setf (episode-number episode)
+                             (string-to-number (cadr number)))))))))
+    episode))
 
 (defun make-series-regexp (name)
   (replace-regexp-in-string " " ".*" name))
