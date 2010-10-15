@@ -133,7 +133,6 @@ or `timestamp'.")
 
 (defun display-media-files ()
   (interactive)
-  (sort-media-files)
   (with-current-buffer (get-buffer-create media-file-buffer)
     (when (not (eq major-mode 'media-files-mode))
       (media-files-mode))
@@ -146,18 +145,22 @@ or `timestamp'.")
 
 (defun media-files-update (&optional arg silent)
   "Revert the media files buffer to the contents of
-`*media-files*'.  If optional prefix ARG is non-nil, then first
-scan the filesystem and update `*media-files*' using
-`update-media-files'."
+`*media-files*' after applying any sorting or filters.  If
+optional prefix ARG is non-nil, then first scan the filesystem
+and update `*media-files*' using `update-media-files', which may
+take a long time."
   (interactive "P")
   (media-files-assert-mode)
-  (let ((line (line-number-at-pos (point))))
+  (let ((line (line-number-at-pos (point)))
+        media-files)
     (unless silent
       (message "Updating media list..."))
     (when arg (update-media-files))
+    (setq media-files (mapcar 'copy-media-file *media-files*))
+    (setq media-files (sort-media-files media-files))
     (toggle-read-only 0)
     (erase-buffer)
-    (dolist (media-file *media-files*)
+    (dolist (media-file media-files)
       (when (or (not media-files-filter-watched)
             (media-file-users-not-watched media-file))
         (media-file-insert-line media-file)))
@@ -228,10 +231,15 @@ scan the filesystem and update `*media-files*' using
   (media-files-assert-mode)
   (let ((media-file (get-text-property (point) 'media-file))
         (user (media-file-nth-user arg)))
-    ;; note that because *media-files* is a defstruct, this line actually
-    ;; modifies the global variable, not some copy of it
     (when user
       (media-file-toggle-user-watched media-file user)
+
+      ;; update the media file in the global list
+      (mapc (lambda (x) (when (string= (media-file-path media-file)
+                                       (media-file-path x))
+                          (media-file-toggle-user-watched x user)))
+            *media-files*)
+
       (media-file-update-line media-file))
     ))
 
@@ -358,14 +366,15 @@ without changing the `media-file-users-watched' field.  See
       (list (length new-files) (length dead-files) (length moved-files))
       )))
 
-(defun sort-media-files (&optional sort-by)
-  "Sort `*media-files*' according to SORT-BY.  If nil, SORT-BY
+(defun sort-media-files (media-files &optional sort-by)
+  "Sort MEDIA-FILES according to SORT-BY.  If nil, SORT-BY
 defaults to `media-files-sort-by'."
   (when (null sort-by) (setq sort-by media-files-sort-by))
   (cond ((equal sort-by 'filename)
-         (setq *media-files* (sort *media-files* 'media-file-name-lessp)))
+         (sort media-files 'media-file-name-lessp))
         ((equal sort-by 'timestamp)
-         (setq *media-files* (sort *media-files* 'media-file-time-lessp)))))
+         (sort media-files 'media-file-time-lessp))
+        (t media-files)))
 
 (defun open-media-file (media-file)
   "Open MEDIA-FILE using the program specified by
