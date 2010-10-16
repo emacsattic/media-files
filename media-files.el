@@ -235,24 +235,31 @@ take a long time."
 (defun media-files-change-sort-method (&optional sort-by)
   "Change the value of `media-files-sort-by' to SORT-BY.  If the current
 buffer is a media file list buffer, then also update the list of media files
-in the buffer with the new sort method.
+in the buffer with the new sort method.  This function can automatically
+select the sort method from `media-files-sort-methods' or let the user
+interactively choose it from the list `media-files-valid-sort-methods'.
 
 SORT-BY must be one of the values in `media-files-valid-sort-methods', or
-it can be `cycle' or nil.  When called interactively or if SORT-BY is
-`cycle' or nil, then select the next value in `media-files-sort-methods'
-automatically and use that as the value of SORT-BY. However, if called with
-a prefix arg, then interactively select the value of SORT-BY from
-`media-files-valid-sort-methods'."
+it can be `cycle' or nil.
+
+If SORT-BY is `cycle' or nil, or if called interactively with a prefix arg,
+then use the next sorting method in `media-files-sort-methods'.
+
+When called interactively, user interactively selects the sort method from
+`media-files-valid-sort-methods'.  The default choice is the next sort method
+from `media-files-sort-methods', so calling this function interactively and
+then hitting return is the same as passing `cycle' or a prefix arg."
+
   (interactive
    (list
     (if current-prefix-arg
+        (media-files-next-sort-method)
         (intern
          (completing-read
           "Sort method: "
           (mapcar 'symbol-name media-files-valid-sort-methods)
           nil nil nil nil
-          (symbol-name (media-files-next-sort-method))))
-        (media-files-next-sort-method))))
+          (symbol-name (media-files-next-sort-method)))))))
 
   ;; note: this won't work so well if media-files-sort-by isn't in
   ;; media-files-sort-methods
