@@ -73,7 +73,7 @@ list.")
 
 (defvar media-files-sort-by nil
   "How to sort the list of media files.  Can be nil, `filename',
-or `timestamp'.")
+`timestamp', or `series-and-episode'.")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; functions related to the media file display list
@@ -372,6 +372,8 @@ defaults to `media-files-sort-by'."
          (sort media-files 'media-file-name-lessp))
         ((equal sort-by 'timestamp)
          (sort media-files 'media-file-time-lessp))
+        ((equal sort-by 'series-and-episode)
+         (sort media-files 'media-file-episode-lessp))
         (t media-files)))
 
 (defun open-media-file (media-file)
@@ -433,6 +435,11 @@ defaults to `media-users'."
 
 (defun media-file-name-lessp (a b)
   (string-lessp (media-file-base-name a) (media-file-base-name b)))
+
+(defun media-file-episode-lessp (a b)
+  (let ((x (media-file-episode-info a))
+        (y (media-file-episode-info b)))
+    (and (episode-p x) (episode-p y) (episode-lessp x y))))
 
 (defun media-file-time-lessp (a b)
   (< 0 (float-time (time-subtract (media-file-time a) (media-file-time b)))))

@@ -110,5 +110,71 @@ with a nil episode."
         (mapcar (lambda (x) (match-string x str)) (cdr result)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; compare episodes for sorting
+
+(defun episode-lessp (x y)
+  (let ((n (compare-episodes x y)))
+    (and n (< n 0))))
+
+;; returns nil if the episodes are not comparable, e.g. they don't have a series
+;; name, or one uses an episode date while the other uses an episode title.
+
+(defun episode-undef (x)
+  (and (null (episode-date x))
+       (null (episode-number x))
+       (null (episode-title x))))
+
+(defun compare-episodes (x y)
+  (let ((name-x (episode-series-name x))
+        (name-y (episode-series-name y))
+        n)
+    (when (and (stringp name-x) (stringp name-y))
+      (setq n (compare-strings name-x 0 (length name-x)
+                               name-y 0 (length name-y)
+                               'case-insensitive))
+      (if (eq n t)
+          (let ((x-undef (episode-undef x))
+                (y-undef (episode-undef y)))
+            (cond ((and x-undef y-undef) 0)
+                  (x-undef -1)
+                  (y-undef 1)
+                  (t (or (compare-episode-dates (episode-date x) (episode-date y))
+                      (compare-episode-numbers (episode-season x) (episode-number x)
+                                               (episode-season y) (episode-number y))
+                      (compare-episode-titles (episode-title x) (episode-title y))))))
+        n))))
+
+(defun compare-episode-titles (x y)
+  (and (stringp x)
+       (stringp y)
+       (compare-strings x 0 (length x) y 0 (length y))))
+
+(defun compare-episode-numbers (season-x number-x season-y number-y)
+  (and number-x number-y
+       (let ((n (compare-numbers (or season-x 1) (or season-y 1))))
+         (if (= n 0)
+             (compare-numbers number-x number-y)
+           n))))
+
+  (cond ((= season-x season-y)
+         (cond ((= (season
+
+(defun compare-numbers (x y)
+  (cond ((< x y) -1)
+        ((> x y) 1)
+        (t 0)))
+
+;; dates are (year month day)
+(defun compare-episode-dates (x y)
+  (when (and (= 3 (length x)) (= 3 (length y)))
+    (compare-number-lists x y)))
+
+(defun compare-number-lists (x y)
+  (cond ((and (null x) (null y)) 0)
+        ((or (null x) (and y (< (car x) (car y)))) -1)
+        ((or (null y) (> (car x) (car y))) 1)
+        (t (compare-number-lists (cdr x) (cdr y)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (provide 'episode-names)
