@@ -71,9 +71,22 @@ found.")
 users in `media-users' will not be displayed in the media file
 list.")
 
-(defvar media-files-sort-by nil
-  "How to sort the list of media files.  Can be nil, `filename',
-`timestamp', or `series-and-episode'.")
+(defconst media-files-valid-sort-methods
+  '(none filename timestamp series-and-episode)
+  "Possible sorting methods.  Specifies which values of
+`media-files-sort-by' and `media-files-sort-methods' are
+allowed.")
+
+(defvar media-files-sort-by 'series-and-episode
+  "How to sort the list of media files.  See
+`media-files-valid-sort-methods' for list of valid values.")
+
+(defvar media-files-sort-methods media-files-valid-sort-methods
+  "What sorting methods to use. `media-files-change-sort-method' uses this
+list to cycle through the sort methods and set the value of
+`media-files-sort-by'.  This should be some subset of
+`media-files-valid-sort-methods', which contains the list of valid sort
+methods.")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; functions related to the media file display list
@@ -94,6 +107,7 @@ list.")
     (define-key map (kbd "q") 'bury-buffer)
     (define-key map (kbd "n") 'next-line)
     (define-key map (kbd "p") 'previous-line)
+    (define-key map (kbd "s") 'media-files-change-sort-method)
     (define-key map (kbd "o") 'media-file-open-file)
     (define-key map (kbd "t") 'media-files-toggle-watched)
     (define-key map (kbd "1")
@@ -217,6 +231,52 @@ take a long time."
                   ;; 'help-echo "Middle click: open file"
   (insert " ") ;; keeps the mouse highlight from spilling over to next line
   (unless no-newline (newline)))
+
+(defun media-files-change-sort-method (&optional sort-by)
+  "Change the value of `media-files-sort-by' to SORT-BY.  If the current
+buffer is a media file list buffer, then also update the list of media files
+in the buffer with the new sort method.
+
+SORT-BY must be one of the values in `media-files-valid-sort-methods', or
+it can be `cycle' or nil.  When called interactively or if SORT-BY is
+`cycle' or nil, then select the next value in `media-files-sort-methods'
+automatically and use that as the value of SORT-BY. However, if called with
+a prefix arg, then interactively select the value of SORT-BY from
+`media-files-valid-sort-methods'."
+  (interactive
+   (list
+    (if current-prefix-arg
+        (intern
+         (completing-read
+          "Sort method: "
+          (mapcar 'symbol-name media-files-valid-sort-methods)
+          nil nil nil nil
+          (symbol-name (media-files-next-sort-method))))
+        (media-files-next-sort-method))))
+
+  ;; note: this won't work so well if media-files-sort-by isn't in
+  ;; media-files-sort-methods
+  (if (memq sort-by '(nil cycle))
+      (setq sort-by (media-files-next-sort-method)))
+
+  (when (null sort-by) (setq sort-by 'none))
+
+  (if (not (memq sort-by media-files-valid-sort-methods))
+      (message "Invalid sort method: %s" sort-by)
+
+    (setq media-files-sort-by sort-by)
+    (if (eq major-mode 'media-files-mode)
+        (progn
+          (message "Sorting by %s..." media-files-sort-by)
+          (media-files-update nil t)
+          (message "Sorting by %s...done" media-files-sort-by))
+      (message "Media file sorting changed to %s" media-files-sort-by))))
+
+(defun media-files-next-sort-method ()
+  ;; if media-files-sort-by is not in media-files-sort-methods,
+  ;; then the lookup will return nil, so we fall back to 'none.
+  (or (cadr (memq media-files-sort-by media-files-sort-methods))
+      'none))
 
 (defun media-file-mouse-toggle-checkbox (event)
   (interactive "e")
