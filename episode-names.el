@@ -53,9 +53,10 @@
 (defstruct episode series-name season number title date)
 
 (defvar episode-number-regexp-alist
-  '(("s\\(eason\\)?_?\\([0-9][0-9]?\\)_?e\\(p\\(isode\\)?\\)?_?\\([0-9][0-9]?\\)" 2 5)
-    ("\\(season_?\\)?\\([0-9][0-9]?\\)/\\([0-9][0-9]?\\)" 2 3)
-    ("\\([0-9][0-9]?\\)x?\\([0-9][0-9]\\)" 1 2))
+  '(("s\\(eason\\)?_?\\([0-9][0-9]?\\)_?e\\(p\\(isode\\)?\\)?_?\\([0-9][0-9]?\\)[^0-9]" 2 5)
+    ("\\(season_?\\)?\\([0-9][0-9]?\\)/\\([0-9][0-9]?\\)[^0-9]" 2 3)
+    ("\\([0-9][0-9]?\\)x\\([0-9][0-9]\\)[^0-9]" 1 2)
+    ("\\([0-9][0-9]?\\)\\([0-9][0-9]\\)[^0-9]" 1 2))
   "An alist for parsing filenames to determine season and episode
 number.  Each entry contains three values: a regular expression
 and two indices of the parenthesized expressions of the regexp
