@@ -32,7 +32,7 @@
 ;; * custom display format (like ibuffer)
 ;; * when open, watch database for changes and automatically re-load;
 ;;   otherwise, keep database closed when not in use.
-;; * metadata - recognize show and episode names, figure out where to refile
+;; * determine where files should go based on metada (series and episode)
 
 (require 'cl)
 (require 'episode-names)
