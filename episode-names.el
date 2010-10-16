@@ -156,9 +156,6 @@ with a nil episode."
              (compare-numbers number-x number-y)
            n))))
 
-  (cond ((= season-x season-y)
-         (cond ((= (season
-
 (defun compare-numbers (x y)
   (cond ((< x y) -1)
         ((> x y) 1)
