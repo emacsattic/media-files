@@ -562,11 +562,9 @@ defaults to `media-users'."
       (error "media-dir-prefix is not set"))))
 
 (defun file-relative-prefix-dir (path)
-  (if (file-name-absolute-p path)
-      path
-    (if media-dir-prefix
-        (file-relative-name path media-dir-prefix)
-      (error "media-dir-prefix is not set"))))
+  (if (and media-dir-prefix (eq 0 (string-match media-dir-prefix path)))
+      (file-relative-name path media-dir-prefix)
+    path))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
