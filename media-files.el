@@ -464,7 +464,7 @@ select MEDIA-FILE from the list `*media-files*'."
       (if command-path
           (call-process command-path nil 0 nil
                         (expand-file-name (media-file-full-path media-file)))
-        (message "No media player found: %s" command-paths)))))
+        (message "No media player found: %s" media-files-command-path)))))
 
 (defun media-file-base-name (media-file)
   "Get the non-directory basename of the file in MEDIA-FILE."
