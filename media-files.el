@@ -42,12 +42,13 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defvar media-dir-prefix "~/"
-  "Prefix directory where all `media-dir' subdirectories are
-found.  Must end in a slash.")
+  "Prefix directory where all relative `media-dir' subdirectories
+are found.  Must end in a slash.")
 
 (defvar media-dir "videos"
-  "A directory or list of directories - relative to
-`media-dir-prefix' - where media-files are found.")
+  "A directory or list of directories.  Can be absolute or
+relative.  If relative, then it is taken as relative to
+`media-dir-prefix'.")
 
 ;; what external command to execute to open media files
 (defvar media-files-command-path '("vlc" "mplayer" "totem")
@@ -349,6 +350,7 @@ line as an item."
   (interactive)
   (media-files-assert-mode)
   (let ((media-file (get-text-property (point) 'media-file)))
+    (message "%s" (media-file-full-path media-file))
     (open-media-file media-file)))
 
 (defun media-files-toggle-watched ()
@@ -371,16 +373,17 @@ line as an item."
 and modification times. DIR can be a list, in which case each
 directory in DIR is scanned and the results are accumulated into
 a single list.  If DIR is nil, then use `media-dir'."
-  (let ((dirs (cond ((null dir) media-dir)
-                    ((listp dir) dir)
-                    (t (list dir))))
-        files)
+  (let (dirs files)
+    (unless dir (setq dir media-dir))
+    (setq dirs (cond ((null dir) (error "scan-media-dir: dir is null"))
+                     ((listp dir) dir)
+                     (t (list dir))))
 
-    (setq files
-          (apply 'append (mapcar (lambda (x) (directory-files-and-attributes-recursive (concat media-dir-prefix x) t media-file-regexp 'nosort)) dirs)))
-    (mapcar (lambda (x) (cons (file-relative-name (car x) media-dir-prefix)
-                              (nth 6 x)))
-            files)))
+    (setq dirs (mapcar 'maybe-prepend-prefix dirs))
+
+    (setq files (directory-files-and-attributes-recursive dirs t media-file-regexp 'nosort))
+
+    (mapcar (lambda (x) (cons (file-relative-prefix-dir (car x)) (nth 6 x))) files)))
 
 (defun update-media-files (&optional dir)
   "Update `*media-files*'.  This adds new files, removes deleted
@@ -394,7 +397,7 @@ without changing the `media-file-users-watched' field.  See
     ;; without this check, if media-dir-prefix isn't mounted,
     ;; then we'll end up *removing* all of the files in *media-files*
     ;; because we think they're dead files.
-    (if (not (file-directory-p media-dir-prefix))
+    (if (and media-dir-prefix (not (file-directory-p media-dir-prefix)))
         (message "Directory does not exist: %s" media-dir-prefix)
 
       (setq files (scan-media-dir dir))
@@ -455,14 +458,12 @@ select MEDIA-FILE from the list `*media-files*'."
      (setq result (find-if (lambda (x) (string= (media-file-base-name x) file-name)) *media-files*))
      (list result)))
   (when media-file
-    (let ((command-paths (if (listp media-files-command-path)
-                             media-files-command-path
-                           (list media-files-command-path)))
-          command-path)
-      (setq command-path (find-if 'executable-find command-paths))
+    (let ((command-path (if (listp media-files-command-path)
+                            (find-if 'executable-find media-files-command-path)
+                          (executable-find media-files-command-path))))
       (if command-path
           (call-process command-path nil 0 nil
-                        (media-file-full-path media-file))
+                        (expand-file-name (media-file-full-path media-file)))
         (message "No media player found: %s" command-paths)))))
 
 (defun media-file-base-name (media-file)
@@ -472,7 +473,7 @@ select MEDIA-FILE from the list `*media-files*'."
 (defun media-file-full-path (media-file)
   "Get the full path to the file in MEDIA-FILE, including the
 prefix specified by `media-dir-prefix'."
-  (concat media-dir-prefix (media-file-path media-file)))
+  (maybe-prepend-prefix (media-file-path media-file)))
 
 (defun media-user-watched-p (media-file user)
   "Return t if USER has watched MEDIA-FILE."
@@ -538,14 +539,35 @@ defaults to `media-users'."
 ;; miscellaneous utility functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; note: directory can be a list of directories
 (defun directory-files-and-attributes-recursive (directory &optional full match nosort id-format)
+  (if (listp directory)
+      (apply 'append (mapcar (lambda (x)
+                               (directory-files-and-attributes-recursive
+                                x full match nosort id-format))
+                             directory))
   (let (files)
     (dolist (x (directory-files-and-attributes directory full "^[^.]" nosort id-format))
       (if (eq t (cadr x)) ;; test if `x' is a directory
           (setq files (append (directory-files-and-attributes-recursive (car x) full match nosort id-format) files))
         (when (string-match match (file-name-nondirectory (car x)))
           (push x files))))
-    files))
+    files)))
+
+(defun maybe-prepend-prefix (path)
+  (if (file-name-absolute-p path)
+      path
+    (if media-dir-prefix
+        (concat media-dir-prefix path)
+      (error "media-dir-prefix is not set"))))
+
+(defun file-relative-prefix-dir (path)
+  (if (file-name-absolute-p path)
+      path
+    (if media-dir-prefix
+        (file-relative-name path media-dir-prefix)
+      (error "media-dir-prefix is not set"))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (provide 'media-files)
