@@ -57,7 +57,7 @@ This can be either a string or a list of strings.  In the latter
 case, it looks for each program and uses the first that is
 found.")
 
-(defvar media-file-regexp "\\(\\.avi$\\|\\.mp4$\\|\\.mpg$\\|\\.mpeg\\)")
+(defvar media-file-regexp "\\(\\.avi$\\|\\.mp4$\\|\\.mpg$\\|\\.mpeg\\|\\.mkv\\)")
 
 (defvar media-users '(me))
 
