@@ -23,6 +23,8 @@
                        :episode-date-regexp '("\\([0-9][0-9][0-9][0-9]\\)\\.\\([0-9][0-9]\\)\\.\\([0-9][0-9]\\)" 1 2 3))
           (make-series :name "Colbert Report"
                        :episode-date-regexp '("\\([0-9][0-9][0-9][0-9]\\)\\.\\([0-9][0-9]\\)\\.\\([0-9][0-9]\\)" 1 2 3))
+          (make-series :name "Conan"
+                       :episode-date-regexp '("\\([0-9][0-9][0-9][0-9]\\)\\.\\([0-9][0-9]\\)\\.\\([0-9][0-9]\\)" 1 2 3))
           (make-series :name "Firefly"
                        :episode-number-regexp '("/\\([0-9][0-9]\\)" 1))
           (make-series :name "John Adams"
