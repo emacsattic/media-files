@@ -28,7 +28,6 @@
 ;; * support undo
 ;; * save/load database file
 ;; * toggle all checkboxes on line
-;; * support filters
 ;; * custom display format (like ibuffer)
 ;; * when open, watch database for changes and automatically re-load;
 ;;   otherwise, keep database closed when not in use.
@@ -66,6 +65,8 @@ found.")
 (defvar *media-files* nil)
 
 (defconst media-file-buffer " *media-files*")
+
+(defvar media-files-filter-by nil)
 
 (defvar media-files-filter-watched nil
   "If non-nil, then media files that have been watched by all
@@ -109,6 +110,7 @@ methods.")
     (define-key map (kbd "n") 'next-line)
     (define-key map (kbd "p") 'previous-line)
     (define-key map (kbd "s") 'media-files-change-sort-method)
+    (define-key map (kbd "/") 'media-files-change-filter)
     (define-key map (kbd "o") 'media-file-open-file)
     (define-key map (kbd "t") 'media-files-toggle-watched)
     (define-key map (kbd "1")
@@ -171,6 +173,11 @@ take a long time."
     (when arg (update-media-files))
     (setq media-files (mapcar 'copy-media-file *media-files*))
     (setq media-files (sort-media-files media-files))
+    (when media-files-filter-by
+      (cond ((eq 'series-name (car media-files-filter-by))
+             (setq media-files (remove-if-not
+                                (lambda (x) (equal (media-file-series-name x) (cdr media-files-filter-by)))
+                                media-files)))))
     (toggle-read-only 0)
     (erase-buffer)
     (dolist (media-file media-files)
@@ -358,6 +365,22 @@ line as an item."
   (setq media-files-filter-watched (not media-files-filter-watched))
   (when (derived-mode-p 'media-files-mode)
     (media-files-update)))
+
+(defun media-files-change-filter (&optional filter-by)
+  (interactive
+   (list (intern (completing-read "Filter by: " '("none" "series-name")))))
+  (cond ((eq 'none filter-by)
+         (setq media-files-filter-by nil))
+        ((eq 'series-name filter-by)
+         (let ((name (completing-read "Series name: " (mapcar 'series-name series-list))))
+           (setq media-files-filter-by (cons 'series-name name))))
+        (t (error "media-files-select-filter: Invalid argument: %s" filter-by)))
+  (if (eq major-mode 'media-files-mode)
+      (progn
+        (message "Filtering by %s..." media-files-filter-by)
+        (media-files-update nil t)
+        (message "Sorting by %s...done" media-files-filter-by))
+    (message "Media file sorting changed to %s" media-files-filter-by)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; functions related to the media-file data structure
