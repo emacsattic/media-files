@@ -385,6 +385,26 @@ a single list.  If DIR is nil, then use `media-dir'."
 
     (mapcar (lambda (x) (cons (file-relative-prefix-dir (car x)) (nth 6 x))) files)))
 
+;; alternative to scan-media-dir.
+;; read the list of files from a generated list in media-dir-prefix.
+(defun read-media-list ()
+  (let ((file-list (concat media-dir-prefix "list")))
+    (when (file-exists-p file-list)
+      (let (filename lines time files)
+        (setq lines (read-lines (concat media-dir-prefix "list")))
+        (while lines
+          (setq filename (concat media-dir-prefix (car lines)))
+          (setq time (apply 'encode-time (parse-time-string (cadr lines))))
+          (push (cons filename time) files)
+          (setq lines (cddr lines)))
+        files))))
+
+(defun read-lines (fpath)
+  "Return a list of lines of a file at at FPATH."
+  (with-temp-buffer
+    (insert-file-contents fpath)
+    (split-string (buffer-string) "\n" t)))
+
 (defun update-media-files (&optional dir)
   "Update `*media-files*'.  This adds new files, removes deleted
 files, and updates the path and timestamp of any moved files
@@ -400,7 +420,7 @@ without changing the `media-file-users-watched' field.  See
     (if (and media-dir-prefix (not (file-directory-p media-dir-prefix)))
         (message "Directory does not exist: %s" media-dir-prefix)
 
-      (setq files (scan-media-dir dir))
+      (setq files (or (read-media-list) (scan-media-dir dir)))
 
       (setq new-files (set-difference files prev-files :test 'equal))
       (setq dead-files (set-difference prev-files files :test 'equal))
