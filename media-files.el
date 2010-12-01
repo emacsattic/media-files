@@ -441,7 +441,7 @@ without changing the `media-file-users-watched' field.  See
     ;; then we'll end up *removing* all of the files in *media-files*
     ;; because we think they're dead files.
     (if (and media-dir-prefix (not (file-directory-p media-dir-prefix)))
-        (message "Directory does not exist: %s" media-dir-prefix)
+        (error "Directory does not exist: %s" media-dir-prefix)
 
       (setq files (or (read-media-list) (scan-media-dir dir)))
 
