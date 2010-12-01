@@ -49,7 +49,7 @@
 
 (defvar series-list nil)
 
-;; information that is derived from a filename and series definition
+;; information that is derived from a filename and series definition.
 (defstruct episode series-name season number title date)
 
 (defvar episode-number-regexp-alist
@@ -57,50 +57,64 @@
     ("\\(season_?\\)?\\([0-9][0-9]?\\)/\\([0-9][0-9]?\\)[^0-9]" 2 3)
     ("\\([0-9][0-9]?\\)x\\([0-9][0-9]\\)[^0-9]" 1 2)
     ("\\([0-9][0-9]?\\)\\([0-9][0-9]\\)[^0-9]" 1 2))
-  "An alist for parsing filenames to determine season and episode
-number.  Each entry contains three values: a regular expression
-and two indices of the parenthesized expressions of the regexp
-that correspond to the season and episode number,
-respectively (see `string-match'). If only one index is provided,
-then it is interpreted as the episode number, and the season
-number is left as nil.")
+  "The default alist to use for parsing filenames to determine
+season and episode number.  Each entry contains three values: a
+regular expression and two indices of the parenthesized
+expressions of the regexp that correspond to the season and
+episode number, respectively (see `string-match'). If only one
+index is provided, then it is interpreted as the episode number,
+and the season number is left as nil.")
+
+(defvar episode-date-regexp-alist
+  '(("\\([0-9][0-9][0-9][0-9]\\)\\.\\([0-9][0-9]\\)\\.\\([0-9][0-9]\\)" 1 2 3))
+  "The default alist to use for parsing filenames to determine
+the episode number of a show as a date.")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; when episode-date-regexp is defined, use that (if t, use episode-date-regexp-alist),
+;; otherwise, use episode-number-regexp or episode-number-regexp-alist.
 (defun guess-episode-info (str)
   "Use `series-list' to guess the episode describes by
 STR (usually a filename).  In the returned result, the car is the
 name of the series and the cdr is the episode number, date, or
 name.  The entire result can be nil, or it can be a series name
 with a nil episode."
-  (let (episode series-name)
-    (loop for x in series-list until episode do
-          (setq series-name
-                (and (string-match (or (series-name-regexp x)
-                                       (make-series-regexp (series-name x)))
-                                   str)
-                     (series-name x)))
-
-          (when series-name
-            (setq episode (make-episode :series-name series-name))
-            (setf (episode-date episode)
-                  (mapcar 'string-to-number
-                          (try-regexps str (series-episode-date-regexp x))))
-            (unless (episode-date episode)
-              (let ((number (try-regexps str (or (series-episode-number-regexp x)
-                                                 episode-number-regexp-alist))))
-                (cond ((= 1 (length number))
-                       (setf (episode-number episode)
-                             (string-to-number (car number))))
-                      ((= 2 (length number))
-                       (setf (episode-season episode)
-                             (string-to-number (car number)))
-                       (setf (episode-number episode)
-                             (string-to-number (cadr number)))))))))
+  (let ((series (match-series str series-list))
+        episode date-result)
+    (when series
+      (setq episode (make-episode :series-name (series-name series)))
+      (setq date-result (try-regexps str (get-series-episode-date-regexp series)))
+      (if date-result
+          (setf (episode-date episode) (mapcar 'string-to-number date-result))
+        (let ((number (try-regexps str (get-series-episode-number-regexp series))))
+          (cond ((= 1 (length number))
+                 (setf (episode-number episode)
+                       (string-to-number (car number))))
+                ((= 2 (length number))
+                 (setf (episode-season episode)
+                       (string-to-number (car number)))
+                 (setf (episode-number episode)
+                       (string-to-number (cadr number))))))))
     episode))
 
-(defun make-series-regexp (name)
-  (replace-regexp-in-string " " ".*" name))
+(defun match-series (string &optional list)
+  (when (not list) (setq list series-list))
+  (find-if (lambda (x) (string-match (get-series-name-regexp x) string))
+           series-list))
+
+(defun get-series-name-regexp (series)
+  (or (series-name-regexp series)
+      (replace-regexp-in-string " " "." (series-name series))))
+
+(defun get-series-episode-number-regexp (series)
+  (or (series-episode-number-regexp series)
+      episode-number-regexp-alist))
+
+(defun get-series-episode-date-regexp (series)
+  (if (eq t (series-episode-date-regexp series))
+      episode-date-regexp-alist
+  (series-episode-date-regexp series)))
 
 (defun try-regexps (str regexp-alist)
   (unless (or (null regexp-alist) (listp (car regexp-alist)))
