@@ -227,9 +227,12 @@ take a long time."
         (put-text-property beg (point) 'user user)))
     (insert (format-time-string "%D" (media-file-time media-file)) "  ")
     (setq beg-file-name (point))
-    (insert (or (media-file-series-name media-file) "unknown"))
-    (insert " ")
-    (insert (format "%s" (media-file-episode media-file)))
+
+    (if (media-file-series-name media-file)
+        (insert (media-file-series-name media-file)
+                (format " %s" (media-file-episode media-file)))
+      (insert (media-file-base-name media-file)))
+
     (add-text-properties beg-line (point)
             (list 'media-file media-file))
     (add-text-properties beg-file-name (point)
