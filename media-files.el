@@ -559,9 +559,9 @@ defaults to `media-users'."
   (< 0 (float-time (time-subtract (media-file-time a) (media-file-time b)))))
   ;; (time-less-p (media-file-time b) (media-file-time a)))
 
-(defun media-file-guess-info (media-file)
+(defun media-file-guess-info (media-file &optional force)
   (let ((result (guess-episode-info (media-file-path media-file))))
-    (when result
+    (when (or result force)
       (setf (media-file-episode-info media-file) result))))
 
 (defun media-file-series-name (media-file)
