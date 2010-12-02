@@ -146,17 +146,21 @@ methods.")
   (run-mode-hooks 'media-files-mode-hook)
   )
 
-(defun display-media-files ()
-  (interactive)
+(defun list-media-files (&optional other-window)
+  (interactive "P")
+  (media-files-buffer-update)
+
+  ;; TODO customize this behavior, support save and restore window config
+  (if other-window
+      (switch-to-buffer-other-window media-file-buffer)
+    (switch-to-buffer media-file-buffer))
+  )
+
+(defun media-files-buffer-update (&optional arg silent)
   (with-current-buffer (get-buffer-create media-file-buffer)
     (when (not (eq major-mode 'media-files-mode))
       (media-files-mode))
-    (media-files-update))
-
-  ;; TODO customize this behavior, support save and restore window config
-  ;;(display-buffer media-file-buffer)
-  (switch-to-buffer-other-window media-file-buffer)
-  )
+    (media-files-update arg silent)))
 
 (defun media-files-update (&optional arg silent)
   "Revert the media files buffer to the contents of

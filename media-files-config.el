@@ -5,6 +5,8 @@
 ;; my preferred config
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(global-set-key (kbd "C-s-.") 'list-media-files)
+
 ;; TODO The 4400 needs a special regexp. "The 4400.408" is identified as season
 ;; 44, episode 0
 
