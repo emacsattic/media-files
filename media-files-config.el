@@ -12,6 +12,8 @@
 
 ;; TODO support for two-part episodes (such as X-Files season 19, episode 19-20)
 
+(setq media-list-filename ".media-files/list")
+
 (setq series-list
   (append
 

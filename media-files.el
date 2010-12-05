@@ -90,6 +90,13 @@ list to cycle through the sort methods and set the value of
 `media-files-valid-sort-methods', which contains the list of valid sort
 methods.")
 
+(defvar media-list-filename nil
+  "A path relative to `media-dir-prefix' of a file that lists the
+media files.  If the file exists, then `read-media-list' will use
+it instead of scanning the directory contents manually, which
+saves a lot of time.  Use the media-list.rb script to generate
+the list.")
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; functions related to the media file display list
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -418,10 +425,10 @@ a single list.  If DIR is nil, then use `media-dir'."
 ;; alternative to scan-media-dir.
 ;; read the list of files from a generated list in media-dir-prefix.
 (defun read-media-list ()
-  (let ((file-list (concat media-dir-prefix "list")))
-    (when (file-exists-p file-list)
+  (let ((file-list (media-list-filename)))
+    (when (and file-list (file-exists-p file-list))
       (let (filename lines time files)
-        (setq lines (read-lines (concat media-dir-prefix "list")))
+        (setq lines (read-lines file-list))
         (while lines
           (setq filename (concat media-dir-prefix (car lines)))
           (setq time (apply 'encode-time (parse-time-string (cadr lines))))
@@ -524,6 +531,10 @@ select MEDIA-FILE from the list `*media-files*'."
   "Get the full path to the file in MEDIA-FILE, including the
 prefix specified by `media-dir-prefix'."
   (maybe-prepend-prefix (media-file-path media-file)))
+
+(defun media-list-filename ()
+  (when media-list-filename
+    (concat media-dir-prefix media-list-filename)))
 
 (defun media-user-watched-p (media-file user)
   "Return t if USER has watched MEDIA-FILE."
